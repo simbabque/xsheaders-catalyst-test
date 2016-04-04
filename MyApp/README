@@ -1,0 +1,16 @@
+This is a bug report for HTTP::XSHeaders in conjuction with Test::WWW::Mechanize::Catalyst.
+
+HTTP::XSHeaders should be used as early in the stack as possible. For a Catalyst app, that's the psgi file. Unfortunately, in your unit tests, it's not that simple.
+
+If you are only using Test::Catalyst, everything is fine. But if you have Test::WWW::Mechanize::Catalyst, it breaks.
+
+    hl is not an instance of HTTP::XSHeaders at /home/julien/perl5/perlbrew/perls/perl-5.20.1/lib/site_perl/5.20.1/HTTP/Message.pm line 644.
+    t/02_mechanize.t .. Dubious, test returned 255 (wstat 65280, 0xff00)
+
+This seems to be because WWW::Mechanize starts building initial headers before it initializes the Catalyst application using its psgi file.
+At that point, it loads HTTP::XSHeaders, but the first headers are already there, and they are regular HTTP::Headers. Now it goes BOOM.
+
+The fix for this is simple. Add HTTP::XSHeaders as early as possible in the **test stack**. If you are using Test::Class::Moose, making a base class for
+all test classes is probably a good idea. Otherwise, at the top of the .t file will work.
+
+Note that there is no issue with this in production. It's only about the tests.
